@@ -1,9 +1,8 @@
 package instances
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -59,7 +58,7 @@ func ListRunningInstances(profile string, region string) {
 	}	
 }
 
-func GetInstanceDetails(instanceID string, profile string, region string) (*ec2.Instance){
+func GetInstanceDetails(instanceID string, profile string, region string) (*ec2.Instance, error){
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: profile,
 		Config: aws.Config{
@@ -69,7 +68,7 @@ func GetInstanceDetails(instanceID string, profile string, region string) (*ec2.
 
 	if err != nil {
 		log.Error("Failed to initialize new session: %v", err)
-		return nil
+		return nil, err
 	}
 
 	ec2Client := ec2.New(sess)
@@ -77,7 +76,7 @@ func GetInstanceDetails(instanceID string, profile string, region string) (*ec2.
 	runningInstances, err := GetRunningInstances(ec2Client)
 	if err != nil {
 		log.Error("Couldn't retrieve running instances: %v", err)
-		return nil
+		return nil, err
 	}
 
 
@@ -85,14 +84,14 @@ func GetInstanceDetails(instanceID string, profile string, region string) (*ec2.
 		for _, instance := range reservation.Instances {
 
 			if *(instance.InstanceId) == instanceID {
-				file, _ := json.MarshalIndent(instance, "", " ")
+				// file, _ := json.MarshalIndent(instance, "", " ")
  
-				_ = ioutil.WriteFile("instance.json", file, 0644)
-				return instance
+				// _ = ioutil.WriteFile("instance.json", file, 0644)
+				return instance, err
 			}
 			
 		}
 		
 	}	
-	return nil
+	return nil, errors.New("Instance not found.")
 }

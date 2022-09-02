@@ -28,7 +28,7 @@ func WriteKey(fileName string, fileData *string) error {
 }
 
 
-func SetupKeys(keyPairName string, keyStoreLocation string, profile string, region string) {
+func SetupKeys(keyPairName string, keyStoreLocation string, profile string, region string) (error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: profile,
 		Config: aws.Config{
@@ -38,7 +38,7 @@ func SetupKeys(keyPairName string, keyStoreLocation string, profile string, regi
 
 	if err != nil {
 		log.Error("Failed to initialize new session: %v", err)
-		return
+		return err
 	}
 
 	ec2Client := ec2.New(sess)
@@ -47,15 +47,16 @@ func SetupKeys(keyPairName string, keyStoreLocation string, profile string, regi
 	createRes, err := CreateKeyPair(ec2Client, keyName)
 	if err != nil {
 		log.Error("Couldn't create key pair: %v", err)
-		return
+		return err
 	}
 
 	err = WriteKey(keyStoreLocation, createRes.KeyMaterial)
 	if err != nil {
 		log.Error("Couldn't write key pair to file: %v", err)
-		return
+		return err
 	}
 	log.Info("Created key pair: ", *createRes.KeyName)
+	return nil
 }
 
 func DeleteKeyPair(keyPair string, profile string, region string) {

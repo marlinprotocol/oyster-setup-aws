@@ -49,8 +49,7 @@ func CreateInstance(client *ec2.EC2, imageId string, minCount int, maxCount int,
 }
 
 
-func LaunchInstance(keyPairName string, profile string, region string) (*string) {
-	log.Info("Launching Instance.")
+func LaunchInstance(keyPairName string, profile string, region string) (*string, error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: profile,
 		Config: aws.Config{
@@ -60,7 +59,7 @@ func LaunchInstance(keyPairName string, profile string, region string) (*string)
 
 	if err != nil {
 		log.Error("Failed to initialize new session: %v", err)
-		return nil
+		return nil, err
 	}
 
 	ec2Client := ec2.New(sess)
@@ -73,18 +72,16 @@ func LaunchInstance(keyPairName string, profile string, region string) (*string)
 	newInstance, err := CreateInstance(ec2Client, imageId, minCount, maxCount, instanceType, keyName)
 	if err != nil {
 		log.Error("Couldn't create new instance: %v", err)
-		return nil
+		return nil, err
 	}
 	instanceID := newInstance.Instances[0].InstanceId
-
-	log.Info("Instance Created!")
 	// fmt.Printf("Created new instance: %v\n", newInstance.Instances)
 
 	// uncomment to store details of newly created instance :
 	// file, _ := json.MarshalIndent(newInstance.Instances[0], "", " ")
 	// _ = ioutil.WriteFile("create_out.json", file, 0644)
 	
-	return instanceID
+	return instanceID, nil
 }
 
 func RebootInstance(instanceID string, profile string, region string) {
@@ -132,7 +129,7 @@ func RebootInstance(instanceID string, profile string, region string) {
 	log.Info("Reboot Successful!")
 }
 
-func TerminateInstance(instanceID string, profile string, region string) {
+func TerminateInstance(instanceID string, profile string, region string) (error){
 	log.Info("Terminating : " + instanceID)
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Profile: profile,
@@ -143,7 +140,7 @@ func TerminateInstance(instanceID string, profile string, region string) {
 
 	if err != nil {
 		log.Error("Failed to initialize new session: %v", err)
-		return
+		return err
 	}
 
     // Create new EC2 client
@@ -153,8 +150,10 @@ func TerminateInstance(instanceID string, profile string, region string) {
 		InstanceIds: []*string{&instanceID},
 	})
 	if err != nil {
-		log.Warn("Couldn't terimate instance: ", err)
+		log.Error("Couldn't terimate instance: ", err)
+		return err
 	}
     
 	log.Info("Termination Successful!")
+	return nil
 }
